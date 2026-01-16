@@ -1,70 +1,142 @@
-# Getting Started with Create React App
+# ScreenTime Pro
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+AI-powered screen time analytics dashboard with personalized insights using Ollama.
 
-## Available Scripts
+![Dashboard Preview](./docs/preview.png)
 
-In the project directory, you can run:
+## Features
 
-### `npm start`
+- 📊 **Real-time Analytics** - Track daily, hourly, and category-based screen time
+- 🤖 **AI Insights** - Get personalized recommendations powered by Ollama
+- 💬 **AI Chat** - Ask questions about your screen time habits
+- 🎨 **Enterprise UI** - Premium dark mode design with smooth animations
+- 📈 **Multiple Charts** - Area charts, bar charts, and donut charts
+- 🔄 **Live Updates** - Refresh data and insights on demand
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Tech Stack
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### Frontend
+- React 19
+- Recharts for visualizations
+- Tailwind CSS for styling
+- Custom CSS design system
 
-### `npm test`
+### Backend
+- FastAPI (Python)
+- Ollama for AI/LLM integration
+- Async HTTP with httpx
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Prerequisites
 
-### `npm run build`
+- Node.js 18+ and npm
+- Python 3.10+
+- [Ollama](https://ollama.ai/) installed locally
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Quick Start
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 1. Clone and Install Dependencies
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+# Install frontend dependencies
+npm install
 
-### `npm run eject`
+# Install backend dependencies
+cd backend
+pip install -r requirements.txt
+cd ..
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### 2. Start Ollama
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Make sure Ollama is running and you have a model pulled:
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```bash
+# Pull a model (if you haven't already)
+ollama pull llama3.2
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+# Verify Ollama is running
+curl http://localhost:11434/api/tags
+```
 
-## Learn More
+### 3. Start the Backend
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```bash
+cd backend
+uvicorn main:app --reload --port 8000
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+The API will be available at `http://localhost:8000`
 
-### Code Splitting
+### 4. Start the Frontend
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+In a new terminal:
 
-### Analyzing the Bundle Size
+```bash
+npm start
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+The app will open at `http://localhost:3000`
 
-### Making a Progressive Web App
+## API Endpoints
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/health` | GET | Check API and Ollama status |
+| `/api/daily` | GET | Get daily screen time data |
+| `/api/apps` | GET | Get app usage breakdown |
+| `/api/hourly` | GET | Get hourly usage distribution |
+| `/api/categories` | GET | Get usage by category |
+| `/api/summary` | GET | Get weekly summary stats |
+| `/api/insights` | GET | Get AI-generated insights |
+| `/api/chat` | POST | Chat with AI about screen time |
+| `/api/dashboard` | GET | Get all dashboard data at once |
 
-### Advanced Configuration
+## Project Structure
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+```
+screen-time-ui/
+├── backend/
+│   ├── main.py              # FastAPI application
+│   ├── requirements.txt     # Python dependencies
+│   └── services/
+│       ├── data_service.py  # Mock data generation
+│       └── ollama_service.py # Ollama AI integration
+├── public/
+│   └── index.html           # HTML template
+├── src/
+│   ├── App.js               # Main React component
+│   ├── index.css            # Enterprise design system
+│   ├── index.js             # React entry point
+│   └── components/
+│       ├── Sidebar.js       # Navigation sidebar
+│       ├── KPICard.js       # KPI stat cards
+│       ├── Charts.js        # Chart components
+│       ├── InsightsPanel.js # AI insights display
+│       └── AIChatPanel.js   # AI chat interface
+├── package.json
+└── README.md
+```
 
-### Deployment
+## Configuration
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+### Using Different Ollama Models
 
-### `npm run build` fails to minify
+You can use different models by passing the `model` parameter:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```bash
+# Get insights with a specific model
+curl "http://localhost:8000/api/insights?model=mistral"
+
+# Chat with a specific model
+curl -X POST "http://localhost:8000/api/chat" \
+  -H "Content-Type: application/json" \
+  -d '{"question": "Why is my screen time high?", "model": "codellama"}'
+```
+
+### Connecting Real Data
+
+Replace the mock data service in `backend/services/data_service.py` with your actual data source (database, AWS API, etc.).
+
+## License
+
+MIT
