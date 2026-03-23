@@ -66,7 +66,7 @@ pub struct Settings {
     pub onboarding_completed: bool,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Database {
     pool: Pool<Sqlite>,
 }
@@ -75,7 +75,7 @@ impl Database {
     pub async fn new(database_url: &str) -> Result<Self> {
         let pool = SqlitePoolOptions::new()
             .max_connections(5)
-            .connect(&format!("sqlite://{}", database_url))
+            .connect(&format!("sqlite://{}?mode=rwc", database_url))
             .await?;
 
         let db = Self { pool };
@@ -96,11 +96,26 @@ impl Database {
                 category TEXT NOT NULL DEFAULT 'Uncategorized',
                 duration_seconds INTEGER NOT NULL DEFAULT 0,
                 is_idle BOOLEAN NOT NULL DEFAULT 0
-            );
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
 
-            CREATE INDEX IF NOT EXISTS idx_activities_timestamp ON activities(timestamp);
-            CREATE INDEX IF NOT EXISTS idx_activities_app ON activities(app_name);
+        sqlx::query(
+            "CREATE INDEX IF NOT EXISTS idx_activities_timestamp ON activities(timestamp)",
+        )
+        .execute(&self.pool)
+        .await?;
 
+        sqlx::query(
+            "CREATE INDEX IF NOT EXISTS idx_activities_app ON activities(app_name)",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            r#"
             CREATE TABLE IF NOT EXISTS focus_sessions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 start_time TEXT NOT NULL,
@@ -108,8 +123,14 @@ impl Database {
                 duration_minutes INTEGER,
                 was_completed BOOLEAN NOT NULL DEFAULT 0,
                 blocked_apps TEXT
-            );
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
 
+        sqlx::query(
+            r#"
             CREATE TABLE IF NOT EXISTS settings (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
                 tracking_enabled BOOLEAN NOT NULL DEFAULT 1,
@@ -122,14 +143,20 @@ impl Database {
                 ollama_model TEXT NOT NULL DEFAULT 'llama3.2',
                 ollama_endpoint TEXT NOT NULL DEFAULT 'http://localhost:11434',
                 onboarding_completed BOOLEAN NOT NULL DEFAULT 0
-            );
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
 
+        sqlx::query(
+            r#"
             CREATE TABLE IF NOT EXISTS team_sync_log (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 sync_date TEXT NOT NULL,
                 data_hash TEXT NOT NULL,
                 sync_status TEXT NOT NULL
-            );
+            )
             "#,
         )
         .execute(&self.pool)
@@ -170,8 +197,12 @@ impl Database {
 
     pub async fn get_today_summary(&self) -> Result<DailySummary> {
         let today = Utc::now().date_naive();
-        let start = today.and_hms_opt(0, 0, 0).unwrap();
-        let end = today.and_hms_opt(23, 59, 59).unwrap();
+        self.get_summary_for_date(today).await
+    }
+
+    pub async fn get_summary_for_date(&self, date: chrono::NaiveDate) -> Result<DailySummary> {
+        let start = date.and_hms_opt(0, 0, 0).unwrap();
+        let end = date.and_hms_opt(23, 59, 59).unwrap();
 
         let rows = sqlx::query(
             r#"
@@ -260,7 +291,7 @@ impl Database {
         ).await?;
 
         Ok(DailySummary {
-            date: today.to_string(),
+            date: date.to_string(),
             total_active_minutes: total_active_seconds / 60,
             total_idle_minutes,
             context_switches,

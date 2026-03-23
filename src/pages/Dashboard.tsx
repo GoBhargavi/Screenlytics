@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, Clock, Zap, Target, TrendingUp, TrendingDown } from 'lucide-react';
+import { Activity, Clock, Zap, Target } from 'lucide-react';
 import { useActivityStore } from '@app/store/activityStore';
 import { FocusScoreChart } from '@components/charts/FocusScoreChart';
 import { HourlyHeatmap } from '@components/charts/HourlyHeatmap';
@@ -58,9 +58,9 @@ export const Dashboard: React.FC = () => {
           <div className="kpi-value">
             {todaySummary ? formatDuration(todaySummary.total_active_minutes) : '--'}
           </div>
-          <div className="kpi-change positive">
-            <TrendingUp className="w-3 h-3" />
-            <span>+12% vs yesterday</span>
+          <div className="kpi-change">
+            <Clock className="w-3 h-3" />
+            <span>Today's total</span>
           </div>
         </motion.div>
 
@@ -74,9 +74,9 @@ export const Dashboard: React.FC = () => {
           <div className="kpi-value" style={{ color: todaySummary && todaySummary.focus_score >= 70 ? 'var(--accent-green)' : todaySummary && todaySummary.focus_score >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)' }}>
             {todaySummary ? todaySummary.focus_score : '--'}
           </div>
-          <div className="kpi-change positive">
-            <TrendingUp className="w-3 h-3" />
-            <span>+5 points</span>
+          <div className="kpi-change">
+            <Target className="w-3 h-3" />
+            <span>Out of 100</span>
           </div>
         </motion.div>
 
@@ -90,9 +90,9 @@ export const Dashboard: React.FC = () => {
           <div className="kpi-value" style={{ color: todaySummary && todaySummary.context_switches > 50 ? 'var(--accent-warning)' : 'var(--text-primary)' }}>
             {todaySummary ? todaySummary.context_switches : '--'}
           </div>
-          <div className="kpi-change negative">
-            <TrendingDown className="w-3 h-3" />
-            <span>High fragmentation</span>
+          <div className="kpi-change">
+            <Activity className="w-3 h-3" />
+            <span>App switches today</span>
           </div>
         </motion.div>
 
@@ -140,7 +140,7 @@ export const Dashboard: React.FC = () => {
       <div className="chart-container">
         <div className="flex items-center justify-between mb-4">
           <h3 className="card-title">Focus Score Trend</h3>
-          <TrendingUp className="w-4 h-4 text-secondary" />
+          <Activity className="w-4 h-4 text-secondary" />
         </div>
         <FocusScoreChart />
       </div>

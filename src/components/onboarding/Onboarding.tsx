@@ -61,7 +61,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       try {
         // Mark onboarding as complete
         await invoke('update_settings', {
-          changes: { onboarding_completed: true }
+          request: { onboarding_completed: true }
         });
         onComplete();
       } catch (err) {

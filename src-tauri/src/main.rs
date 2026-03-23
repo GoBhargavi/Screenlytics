@@ -43,62 +43,68 @@ fn main() {
     // Load enterprise config if available
     let enterprise_config = EnterpriseConfig::load();
     if let Some(ref config) = enterprise_config {
-        info!("Enterprise config loaded: company_id={:?}, managed={}", 
+        info!("Enterprise config loaded: company_id={:?}, managed={}",
             config.company_id, config.is_managed());
     } else {
         info!("No enterprise config found - running in personal mode");
     }
 
-    let app_dir = tauri::api::path::app_data_dir(&tauri::Config::default())
-        .expect("Failed to get app data directory");
-
-    std::fs::create_dir_all(&app_dir).expect("Failed to create app directory");
-
-    let db_path = app_dir.join("screenlytics.db");
-    info!("Database path: {:?}", db_path);
-
-    let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
-
-    let db = rt.block_on(async {
-        Database::new(db_path.to_str().unwrap())
-            .await
-            .expect("Failed to initialize database")
-    });
-
-    let tracker = ActivityTracker::new(Arc::new(RwLock::new(db.clone())));
-    
-    // Use enterprise Ollama config if available, otherwise default
-    let ai = if let Some(ref config) = enterprise_config {
-        OllamaService::new(config.ollama_endpoint.clone(), config.ollama_model.clone())
-    } else {
-        OllamaService::default()
-    };
-    
-    let state = AppState::new(db, tracker, ai);
-
-    let state_clone = state.clone();
-    rt.spawn(async move {
-        let ai = state_clone.ai.clone();
-        let ai = ai.read().await;
-        if ai.is_available().await {
-            info!("Ollama AI service is available");
-        } else {
-            warn!("Ollama AI service is not available - AI features will be disabled");
-        }
-    });
-
-    let state_clone = state.clone();
-    rt.spawn(async move {
-        let tracker = state_clone.tracker.clone();
-        let mut tracker = tracker.write().await;
-        if let Err(e) = tracker.start().await {
-            error!("Failed to start activity tracker: {}", e);
-        }
-    });
-
     tauri::Builder::default()
-        .manage(state)
         .plugin(tauri_plugin_shell::init())
+        .setup(move |app| {
+            use tauri::Manager;
+
+            let app_dir = app.path().app_data_dir()
+                .expect("Failed to get app data directory");
+
+            std::fs::create_dir_all(&app_dir)
+                .expect("Failed to create app directory");
+
+            let db_path = app_dir.join("screenlytics.db");
+            info!("Database path: {:?}", db_path);
+
+            // Initialize database synchronously during setup
+            let rt = tokio::runtime::Handle::current();
+            let db = rt.block_on(async {
+                Database::new(db_path.to_str().unwrap_or("screenlytics.db"))
+                    .await
+                    .expect("Failed to initialize database")
+            });
+
+            let tracker = ActivityTracker::new(Arc::new(RwLock::new(db.clone())));
+
+            // Use enterprise Ollama config if available, otherwise default
+            let ai = if let Some(ref config) = enterprise_config {
+                OllamaService::new(config.ollama_endpoint.clone(), config.ollama_model.clone())
+            } else {
+                OllamaService::default()
+            };
+
+            let state = AppState::new(db, tracker, ai);
+
+            // Check Ollama availability in background
+            let ai_check = state.ai.clone();
+            tauri::async_runtime::spawn(async move {
+                let ai = ai_check.read().await;
+                if ai.is_available().await {
+                    info!("Ollama AI service is available");
+                } else {
+                    warn!("Ollama AI service is not available - AI features will be disabled");
+                }
+            });
+
+            // Start activity tracker in background
+            let tracker_ref = state.tracker.clone();
+            tauri::async_runtime::spawn(async move {
+                let mut tracker = tracker_ref.write().await;
+                if let Err(e) = tracker.start().await {
+                    error!("Failed to start activity tracker: {}", e);
+                }
+            });
+
+            app.manage(state);
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::get_today_summary,
             commands::get_hourly_data,

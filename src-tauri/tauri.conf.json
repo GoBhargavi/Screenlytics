@@ -56,7 +56,7 @@
       "csp": null,
       "dangerousDisableAssetCspModification": false,
       "freezePrototype": false,
-      " dangerousUseIframeSandbox": false,
+      "dangerousUseIframeSandbox": false,
       "dangerousRemoteDomainIpcAccess": [],
       "iframe_parents": [],
       "pattern": {

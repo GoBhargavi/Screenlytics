@@ -1,4 +1,4 @@
-use crate::{AppState, db};
+use crate::{AppState, db, integrations};
 use serde::{Deserialize, Serialize};
 use tauri::State;
 use anyhow::Result;
@@ -65,7 +65,7 @@ pub async fn get_app_breakdown(
     };
 
     let db = state.db.read().await;
-    match db.get_today_summary().await {
+    match db.get_summary_for_date(parsed_date).await {
         Ok(summary) => Ok(ApiResponse::ok(summary.top_apps)),
         Err(e) => Ok(ApiResponse::err(format!("Failed to get app breakdown: {}", e))),
     }
@@ -121,9 +121,7 @@ pub async fn get_weekly_summary(state: State<'_, AppState>) -> Result<ApiRespons
         let date = chrono::Utc::now() - chrono::Duration::days(i);
         let naive_date = date.date_naive();
 
-        // Note: This is a simplified approach - we'd need to enhance db.rs
-        // to query by specific date more efficiently
-        if let Ok(summary) = db.get_today_summary().await {
+        if let Ok(summary) = db.get_summary_for_date(naive_date).await {
             summaries.push(summary);
         }
     }
